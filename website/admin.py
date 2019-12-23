@@ -1,44 +1,14 @@
+from datetime import datetime
+from django.db.models import Q
 from django.contrib import admin
+from django.template.response import TemplateResponse
 from website.models import Ads, HomeSlide, Promotion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+
 from website.models import UserProfile, Sell, SellTicket, MercadoPago, Price, \
     SellCoupon, PopupHome
-
-
-class PaymentListFilter(admin.SimpleListFilter):
-    # Human-readable title which will be displayed in the
-    # right admin sidebar just above the filter options.
-    title = 'Pago'
-
-    # Parameter for the filter that will be used in the URL query.
-    parameter_name = 'payment'
-
-    def lookups(self, request, model_admin):
-        return (
-            # ('Si', 'Si'),
-            ('No', 'No'),
-            ('err', 'Error'),
-            ('err2', 'Error No Pago'),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'Si':
-            ids = MercadoPago.objects.filter(status='approved')\
-                .values_list('sell__id', flat=True)
-            return queryset.filter(id__in=ids)
-        if self.value() == 'No':
-            ids = MercadoPago.objects.filter(status='approved')\
-                .values_list('sell_id', flat=True)
-            return queryset.exclude(id__in=ids)
-        if self.value() == 'err2':
-            ids = MercadoPago.objects.filter(status='approved')\
-                .values_list('sell_id', flat=True)
-            return queryset.exclude(id__in=ids).exclude(vista_booking_id='')
-        if self.value() == 'err':
-            ids = MercadoPago.objects.filter(status='approved')\
-                .values_list('sell_id', flat=True)
-            return queryset.filter(id__in=ids, vista_booking_id='')
+from django_object_actions import DjangoObjectActions
 
 
 class PopupHomeAdmin(admin.ModelAdmin):
@@ -99,13 +69,75 @@ class SellCouponInline(admin.TabularInline):
     extra = 0
 
 
-class SellAdmin(admin.ModelAdmin):
+class PaymentListFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = 'Pago'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'payment'
+
+    def lookups(self, request, model_admin):
+        return (
+            # ('Si', 'Si'),
+            ('No', 'No'),
+            ('err', 'Error'),
+            ('err2', 'Error No Pago'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'Si':
+            ids = MercadoPago.objects.filter(status='approved')\
+                .values_list('sell__id', flat=True)
+            return queryset.filter(id__in=ids)
+        if self.value() == 'No':
+            ids = MercadoPago.objects.filter(status='approved')\
+                .values_list('sell_id', flat=True)
+            return queryset.exclude(id__in=ids)
+        if self.value() == 'err2':
+            ids = MercadoPago.objects.filter(status='approved')\
+                .values_list('sell_id', flat=True)
+            return queryset.exclude(id__in=ids).exclude(vista_booking_id='')
+        if self.value() == 'err':
+            ids = MercadoPago.objects.filter(status='approved')\
+                .values_list('sell_id', flat=True)
+            return queryset.filter(id__in=ids, vista_booking_id='')
+
+
+class AuditoriaFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = 'Auditoria'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'auditoria'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('Voucher', 'Voucher'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'Voucher':
+            fecha = '01/12/2019'
+            d_fecha = datetime.strptime(fecha, '%d/%m/%Y')
+
+            return queryset.filter(
+                ~Q(vista_booking_id=''),
+                Q(created__gte=d_fecha),
+                sellcoupon__isnull=True,
+                tickets__description='VOUCHER WEB'
+            )
+            # return queryset.filter(id__in=ids)
+
+
+class SellAdmin(DjangoObjectActions, admin.ModelAdmin):
     inlines = (SellTicketInline, SellCouponInline)
     list_display = (
         '__unicode__', 'user', 'admin_success', 'created',
         'admin_payment_date'
     )
-    list_filter = (PaymentListFilter, 'created', )
+    list_filter = (PaymentListFilter, AuditoriaFilter, 'created', )
     search_fields = (
         'user__email', 'user__first_name', 'user__last_name',
         'id', 'film_title')
@@ -114,6 +146,16 @@ class SellAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super(SellAdmin, self).get_queryset(request)
         return qs.prefetch_related('pago')
+
+    def auditotia(self, request, queryset):
+        context = {
+            'results': [1, 2, 3]
+        }
+        return TemplateResponse(request, "admin/audit.html", context)
+
+    auditotia.label = "Auditar Entradas"
+    auditotia.short_description = "Auditar Entradas"
+    changelist_actions = ('auditotia', )
 
 
 class SellCouponAdmin(admin.ModelAdmin):
