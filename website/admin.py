@@ -114,21 +114,70 @@ class AuditoriaFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return (
-            ('Voucher', 'Voucher'),
+            ('VOUCHER', 'VOUCHER'),
+            ('MOVIECLUB', 'MOVIECLUB'),
+            ('m/v', 'MOVIECLUB/VOUCHER'),
+            ('m/v/er', 'MOVIECLUB/VOUCHER/ENTRADA REGULAR'),
+            ('er', 'ENTRADA REGULAR'),
         )
 
     def queryset(self, request, queryset):
-        if self.value() == 'Voucher':
-            fecha = '01/12/2019'
-            d_fecha = datetime.strptime(fecha, '%d/%m/%Y')
+        fecha = '01/12/2019'
+        d_fecha = datetime.strptime(fecha, '%d/%m/%Y')
+        a = ['VOUCHER WEB', 'MOVIECLUB']
+        b = [
+            'MARATON WEB', 'GENERAL WEB', 'GENERAL 3D WEB', 'MATINEE WEB',
+            'LUNES/MARTES WEB', 'LUNES/MART 3D WEB', 'MIERCOLES WEB',
+            'MIERCOLES 3D WEB', 'MENOR WEB', 'JUBILADO WEB',
+            'A MIERCOLES WEB', 'A MENOR-JUBILADO 3D WEB', 'MATINEE 3D WEB',
+            'A MIERCOLES 3D WEB', 'A MENOR-JUBILADO WEB',
+            'A DESCUENTO 3D WEB', 'ANTICIPADA DESCUENTO WEB',
+            'ANTICIPADA 3D WEB,' 'MENOR 3D WEB', 'JUBILADO 3D WEB',
+            'ANTICIPADA WEB'
+        ]
 
+        if self.value() == 'VOUCHER':
             return queryset.filter(
                 ~Q(vista_booking_id=''),
                 Q(created__gte=d_fecha),
-                sellcoupon__isnull=True,
-                tickets__description='VOUCHER WEB'
+                Q(sellcoupon__isnull=True),
+                ~Q(pago__status='approved'),
+                tickets__description='VOUCHER WEB',
             )
-            # return queryset.filter(id__in=ids)
+        if self.value() == 'MOVIECLUB':
+            return queryset.filter(
+                ~Q(vista_booking_id=''),
+                Q(created__gte=d_fecha),
+                Q(sellcoupon__isnull=True),
+                ~Q(pago__status='approved'),
+                tickets__description='MOVIECLUB',
+            )
+
+        if (self.value() == 'm/v'):
+            return queryset.filter(
+                ~Q(vista_booking_id=''),
+                Q(created__gte=d_fecha),
+                Q(sellcoupon__isnull=True),
+                ~Q(pago__status='approved'),
+                Q(tickets__description__in=a),
+            )
+        if (self.value() == 'm/v/er'):
+            return queryset.filter(
+                ~Q(vista_booking_id=''),
+                Q(created__gte=d_fecha),
+                Q(sellcoupon__isnull=True),
+                ~Q(pago__status='approved'),
+                Q(tickets__description__in=a + b),
+            )
+
+        if (self.value() == 'er'):
+            return queryset.filter(
+                ~Q(vista_booking_id=''),
+                Q(created__gte=d_fecha),
+                Q(sellcoupon__isnull=True),
+                ~Q(pago__status='approved'),
+                Q(tickets__description__in=b),
+            )
 
 
 class SellAdmin(DjangoObjectActions, admin.ModelAdmin):
@@ -178,6 +227,10 @@ class PromotionAdmin(admin.ModelAdmin):
 
 class MercadoPagoAdmin(admin.ModelAdmin):
     list_display = ('sell', 'status', 'collection_id', 'created')
+    raw_id_fields = ('sell', )
+
+
+class SellTicketAdmin(admin.ModelAdmin):
     raw_id_fields = ('sell', )
 
 # Register your models here.
