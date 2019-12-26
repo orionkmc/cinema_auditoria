@@ -115,16 +115,16 @@ class AuditoriaFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         return (
             ('VOUCHER', 'VOUCHER'),
-            ('MOVIECLUB', 'MOVIECLUB'),
-            ('m/v', 'MOVIECLUB/VOUCHER'),
-            ('m/v/er', 'MOVIECLUB/VOUCHER/ENTRADA REGULAR'),
+            ('MOVIECLUB PASE', 'MOVIECLUB PASE'),
+            ('m/v', 'MOVIECLUB PASE/VOUCHER'),
+            ('m/v/er', 'MOVIECLUB PASE/VOUCHER/ENTRADA REGULAR'),
             ('er', 'ENTRADA REGULAR'),
         )
 
     def queryset(self, request, queryset):
         fecha = '01/12/2019'
         d_fecha = datetime.strptime(fecha, '%d/%m/%Y')
-        a = ['VOUCHER WEB', 'MOVIECLUB']
+        a = ['VOUCHER WEB', 'MOVIECLUB PASE']
         b = [
             'MARATON WEB', 'GENERAL WEB', 'GENERAL 3D WEB', 'MATINEE WEB',
             'LUNES/MARTES WEB', 'LUNES/MART 3D WEB', 'MIERCOLES WEB',
@@ -144,13 +144,13 @@ class AuditoriaFilter(admin.SimpleListFilter):
                 ~Q(pago__status='approved'),
                 tickets__description='VOUCHER WEB',
             )
-        if self.value() == 'MOVIECLUB':
+        if self.value() == 'MOVIECLUB PASE':
             return queryset.filter(
                 ~Q(vista_booking_id=''),
                 Q(created__gte=d_fecha),
                 Q(sellcoupon__isnull=True),
                 ~Q(pago__status='approved'),
-                tickets__description='MOVIECLUB',
+                tickets__description='MOVIECLUB PASE',
             )
 
         if (self.value() == 'm/v'):
