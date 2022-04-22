@@ -1,6 +1,6 @@
 cffi==1.13.2
 cryptography==2.8
-Django==2.2
+Django==2.2.28
 django-object-actions==2.0.0
 django-tinymce==2.8.0
 -e git+https://github.com/heroku/kafka-helper@70aa539540e7d6517f0c3c1900617767ab198b6c#egg=kafka_helper
